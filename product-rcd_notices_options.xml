@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="rcd_notices_options" active="1">
+	<title>Notices Options</title>
+	<description>Adds a new options to notices</description>
+	<version>0.2</version>
+	<url><![CDATA[http://www.vbulletin.org/forum/misc.php?do=producthelp&pid=rcd_notices_options]]></url>
+	<versioncheckurl><![CDATA[http://www.vbulletin.org/forum/misc.php?do=productcheck&pid=rcd_notices_options]]></versioncheckurl>
+	<apm_releasedate></apm_releasedate>
+	<apm_author></apm_author>
+	<apm_relatedurl></apm_relatedurl>
+	<apm_extrainfo></apm_extrainfo>
+	<apm_extraedit></apm_extraedit>
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="0.2">
+			<installcode><![CDATA[$db->hide_errors();
+$db->query_write('ALTER TABLE ' . TABLE_PREFIX . 'noticedismissed  ADD `dateline` INT( 10 ) NOT NULL DEFAULT \'0\'');
+$db->query_write('ALTER TABLE ' . TABLE_PREFIX . 'noticedismissed ADD INDEX `rcd_n_o_dismissed_period`  ( `dateline`, `noticeid` )');
+$db->show_errors();]]></installcode>
+			<uninstallcode><![CDATA[$db->hide_errors();
+$db->query_write('ALTER TABLE ' . TABLE_PREFIX . 'noticedismissed DROP INDEX rcd_n_o_dismissed_period');
+$db->query_write('ALTER TABLE ' . TABLE_PREFIX . 'noticedismissed DROP `dateline`');
+$db->show_errors();]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="rcd_n_o_additional_notices" templatetype="template" date="1277205553" username="varnak" version="0.2"><![CDATA[<vb:if condition="$show['notices'] AND $show['quickreply']">
+
+	<form action="profile.php?do=dismissnotice" method="post" id="additional_notices" class="notices">
+
+		<input type="hidden" name="do" value="dismissnotice" />
+
+		<input type="hidden" name="s" value="{vb:raw session.sessionurl}" />
+
+		<input type="hidden" name="securitytoken" value="{vb:raw bbuserinfo.securitytoken}" />
+
+		<input type="hidden" id="dismiss_notice_hidden" name="dismiss_noticeid" value="" />
+
+		<input type="hidden" name="url" value="{vb:raw return_link}" />
+
+		<ol>
+
+			{vb:raw additional_notices}
+
+		</ol>
+
+	</form>
+
+</vb:if>]]></template>
+	</templates>
+	<stylevardfns>
+	</stylevardfns>
+	<stylevars>
+	</stylevars>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>Notices before blog entry quick editor</title>
+			<hookname>blog_entry_complete</hookname>
+			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
+$notice_templater->register('return_link', $GLOBALS['return_link']);
+$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
+
+$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Cache templates</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (in_array(THIS_SCRIPT, array('showthread', 'group', 'blog')))
+{
+    $cache[] = 'rcd_n_o_additional_notices';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title><![CDATA[Daily cron script for "repeat period" notice settings]]></title>
+			<hookname>cron_script_cleanup_daily</hookname>
+			<phpcode><![CDATA[// update date for new records
+$sql = 'UPDATE 
+            '. TABLE_PREFIX . 'noticedismissed
+        SET
+            `dateline` = ' . TIMENOW . '
+        WHERE
+            `dateline` = 0';
+$vbulletin->db->query_write($sql);
+
+// remove record with expired dismissed period
+$sql = 'SELECT `noticeid`, `condition1` FROM '. TABLE_PREFIX . 'noticecriteria WHERE `criteriaid` = \'rcd_n_o_repeat_notice\'';
+$notices = $vbulletin->db->query_read($sql);
+while ($notice = $vbulletin->db->fetch_array($notices))
+{
+	$noticeid = $notice['noticeid'];
+    $repeat_period = (int)$notice['condition1'];
+    if ($repeat_period > 0)
+    {
+        $sql = 'DELETE FROM '
+                    . TABLE_PREFIX . 'noticedismissed
+                WHERE
+                    `dateline` < ' . (TIMENOW - ($repeat_period * 60 * 60 * 24)) . ' AND
+                    `noticeid` = ' . $noticeid;
+                    
+        $vbulletin->db->query_write($sql);
+    }
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Notices before sg quick editor</title>
+			<hookname>group_discuss_end</hookname>
+			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
+$notice_templater->register('return_link', $GLOBALS['return_link']);
+$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
+
+$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Add notice criteria handle</title>
+			<hookname>notices_check_criteria</hookname>
+			<phpcode><![CDATA[if ('rcd_n_o_thiscript' == $criteriaid)
+{
+    $script_list = explode(',', trim($conditions[0]));
+    $script_list = array_map('trim', $script_list);
+    $abort_condition = !in_array(THIS_SCRIPT, $script_list);
+
+    $is_not = (bool)$conditions[1];
+    if ($is_not)
+    {
+        $abort_condition = !$abort_condition;
+    }
+	$abort = $abort_condition;
+}
+
+if ('rcd_n_o_additional_position_for_notice' == $criteriaid)
+{
+	if (!isset($notice_position))
+	{
+		$abort = true;
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Prepare notices for second build iteration</title>
+			<hookname>notices_check_start</hookname>
+			<phpcode><![CDATA[global $notice_position;
+if (isset($notice_position))
+{
+    foreach ($vbulletin->noticecache AS $noticeid => $notice)
+    {
+        if (!array_key_exists('rcd_n_o_additional_position_for_notice', $notice))
+        {
+            unset($vbulletin->noticecache[$noticeid]);
+        }
+    }
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Add aditional notice criteria fields</title>
+			<hookname>notices_list_criteria</hookname>
+			<phpcode><![CDATA[$criteria_options = array_merge($criteria_options, array(
+		'rcd_n_o_thiscript' => array(
+			'<input type="text" name="criteria[rcd_n_o_thiscript][condition1]" size="20" class="bginput" tabindex="1" value="' .
+				(empty($criteria_cache['rcd_n_o_thiscript']['condition1']) ? '' : htmlspecialchars_uni($criteria_cache['rcd_n_o_thiscript']['condition1'])) .
+			'" />',
+            '<input type="checkbox" name="criteria[rcd_n_o_thiscript][condition2]" value="1" ' .
+                (empty($criteria_cache['rcd_n_o_thiscript']['condition2']) ? '' : ($criteria_cache['rcd_n_o_thiscript']['condition2'])? 'checked' : '') .
+            ' tabindex="1" >',
+            ),
+        'rcd_n_o_additional_position_for_notice'=> array(
+
+		),
+        'rcd_n_o_repeat_notice'=> array(
+            '<input type="text" name="criteria[rcd_n_o_repeat_notice][condition1]" size="5" class="bginput" tabindex="1" value="' .
+				(empty($criteria_cache['rcd_n_o_repeat_notice']['condition1']) ? '0' : htmlspecialchars_uni($criteria_cache['rcd_n_o_repeat_notice']['condition1'])) .
+			'" />',
+		),
+));]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Notices before pm quick editor</title>
+			<hookname>private_complete</hookname>
+			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
+$notice_templater->register('return_link', $GLOBALS['return_link']);
+$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
+
+$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];
+$page_templater->register('vBeditTemplate', $vBeditTemplate);]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Build notices for alternative place</title>
+			<hookname>process_templates_complete</hookname>
+			<phpcode><![CDATA[global $notice_position;
+$notice_position = 'additional_position_for_notices';
+$GLOBALS['additional_notices'] = $this->build_notices();]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Notices before thread quick editor</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
+$notice_templater->register('return_link', $GLOBALS['return_link']);
+$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
+
+$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Notices" fieldname="notice">
+			<phrase name="rcd_n_o_additional_position_for_notice_criteria" date="1277384939" username="Vitaly" version=""><![CDATA[Place notice prior to quick editor]]></phrase>
+			<phrase name="rcd_n_o_repeat_notice_criteria" date="1277384883" username="Vitaly" version=""><![CDATA[Repeat this notice after {1} days, if dismissed by user]]></phrase>
+			<phrase name="rcd_n_o_thiscript_criteria" date="0" username="varnak" version="0.1"><![CDATA[If THIS_SCRIPT (is not {2}) in list {1} (comma separated). ]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+	<templateedits>
+	</templateedits>
+</product>
