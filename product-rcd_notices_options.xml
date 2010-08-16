@@ -3,14 +3,9 @@
 <product productid="rcd_notices_options" active="1">
 	<title>Notices Options</title>
 	<description>Adds a new options to notices</description>
-	<version>0.2</version>
+	<version>0.3</version>
 	<url><![CDATA[http://www.vbulletin.org/forum/misc.php?do=producthelp&pid=rcd_notices_options]]></url>
 	<versioncheckurl><![CDATA[http://www.vbulletin.org/forum/misc.php?do=productcheck&pid=rcd_notices_options]]></versioncheckurl>
-	<apm_releasedate></apm_releasedate>
-	<apm_author></apm_author>
-	<apm_relatedurl></apm_relatedurl>
-	<apm_extrainfo></apm_extrainfo>
-	<apm_extraedit></apm_extraedit>
 	<dependencies>
 	</dependencies>
 	<codes>
@@ -67,12 +62,12 @@ $vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate[
 		<plugin active="1" executionorder="5">
 			<title>Cache templates</title>
 			<hookname>cache_templates</hookname>
-			<phpcode><![CDATA[if (in_array(THIS_SCRIPT, array('showthread', 'group', 'blog')))
+			<phpcode><![CDATA[if (in_array(THIS_SCRIPT, array('showthread', 'group', 'blog', 'private')))
 {
     $cache[] = 'rcd_n_o_additional_notices';
 }]]></phpcode>
 		</plugin>
-		<plugin active="1" executionorder="5">
+		<plugin active="0" executionorder="5">
 			<title><![CDATA[Daily cron script for "repeat period" notice settings]]></title>
 			<hookname>cron_script_cleanup_daily</hookname>
 			<phpcode><![CDATA[// update date for new records
