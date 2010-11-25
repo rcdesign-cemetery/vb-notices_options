@@ -26,7 +26,7 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="rcd_n_o_additional_notices" templatetype="template" date="1277205553" username="varnak" version="0.2"><![CDATA[<vb:if condition="$show['notices'] AND $show['quickreply']">
+		<template name="rcd_n_o_additional_notices" templatetype="template" date="1290678674" username="varnak" version="0.3"><![CDATA[<vb:if condition="$show['quickreply'] OR $show['quickcomment']">
 
 	<form action="profile.php?do=dismissnotice" method="post" id="additional_notices" class="notices">
 
@@ -55,15 +55,6 @@ $db->show_errors();]]></uninstallcode>
 	<stylevars>
 	</stylevars>
 	<plugins>
-		<plugin active="1" executionorder="5">
-			<title>Notices before blog entry quick editor</title>
-			<hookname>blog_entry_complete</hookname>
-			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
-$notice_templater->register('return_link', $GLOBALS['return_link']);
-$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
-
-$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];]]></phpcode>
-		</plugin>
 		<plugin active="1" executionorder="10">
 			<title>Cache templates</title>
 			<hookname>cache_templates</hookname>
@@ -102,15 +93,6 @@ while ($notice = $vbulletin->db->fetch_array($notices))
         $vbulletin->db->query_write($sql);
     }
 }]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
-			<title>Notices before sg quick editor</title>
-			<hookname>group_discuss_end</hookname>
-			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
-$notice_templater->register('return_link', $GLOBALS['return_link']);
-$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
-
-$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Add notice criteria handle</title>
@@ -175,30 +157,21 @@ if (isset($notice_position))
 ));]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
-			<title>Notices before pm quick editor</title>
-			<hookname>private_complete</hookname>
-			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
-$notice_templater->register('return_link', $GLOBALS['return_link']);
-$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
-
-$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];
-$page_templater->register('vBeditTemplate', $vBeditTemplate);]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
 			<title>Build notices for alternative place</title>
 			<hookname>process_templates_complete</hookname>
-			<phpcode><![CDATA[global $notice_position;
-$notice_position = 'additional_position_for_notices';
-$GLOBALS['additional_notices'] = $this->build_notices();]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
-			<title>Notices before thread quick editor</title>
-			<hookname>showthread_complete</hookname>
-			<phpcode><![CDATA[$notice_templater = vB_Template::create('rcd_n_o_additional_notices');
-$notice_templater->register('return_link', $GLOBALS['return_link']);
-$notice_templater->register('additional_notices', $GLOBALS['additional_notices']);
-
-$vBeditTemplate['clientscript'] = $notice_templater->render() . $vBeditTemplate['clientscript'];]]></phpcode>
+			<phpcode><![CDATA[if (isset($vbulletin->templatecache['editor_clientscript']))
+{
+    // Set flag to build alternate (berfore editor) notices list
+    global $notice_position;
+    $notice_position = 'additional_position_for_notices';
+    
+    $additional_notices = $this->build_notices();
+    if (!empty($additional_notices))
+    {
+        $vbulletin->templatecache['editor_clientscript'] .= '$final_rendered .= \'' .vB_Template::fetch_template_raw('rcd_n_o_additional_notices') . '\';';
+        vB_Template::preRegister('editor_clientscript', array('return_link'=>$vbulletin->scriptpath, 'additional_notices'=> $additional_notices));
+    }
+}]]></phpcode>
 		</plugin>
 	</plugins>
 	<phrases>
