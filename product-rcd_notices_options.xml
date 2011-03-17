@@ -3,7 +3,7 @@
 <product productid="rcd_notices_options" active="1">
 	<title>Notices Options</title>
 	<description>Adds a new options to notices</description>
-	<version>0.3</version>
+	<version>0.4</version>
 	<url><![CDATA[http://www.vbulletin.org/forum/misc.php?do=producthelp&pid=rcd_notices_options]]></url>
 	<versioncheckurl><![CDATA[http://www.vbulletin.org/forum/misc.php?do=productcheck&pid=rcd_notices_options]]></versioncheckurl>
 	<apm_releasedate>0</apm_releasedate>
