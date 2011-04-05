@@ -3,7 +3,7 @@
 <product productid="rcd_notices_options" active="1">
 	<title>Notices Options</title>
 	<description>Adds a new options to notices</description>
-	<version>0.5</version>
+	<version>0.6</version>
 	<url><![CDATA[http://www.vbulletin.org/forum/misc.php?do=producthelp&pid=rcd_notices_options]]></url>
 	<versioncheckurl><![CDATA[http://www.vbulletin.org/forum/misc.php?do=productcheck&pid=rcd_notices_options]]></versioncheckurl>
 	<apm_releasedate>0</apm_releasedate>
@@ -159,7 +159,7 @@ if (isset($notice_position))
 		<plugin active="1" executionorder="5">
 			<title>Build notices for alternative place</title>
 			<hookname>process_templates_complete</hookname>
-			<phpcode><![CDATA[if (isset($vbulletin->templatecache['editor_clientscript']))
+			<phpcode><![CDATA[if (!defined('NONOTICES') AND isset($vbulletin->templatecache['editor_clientscript']))
 {
     // Set flag to build alternate (berfore editor) notices list
     global $notice_position;
@@ -174,7 +174,10 @@ if (isset($notice_position))
         $vbulletin->templatecache['editor_clientscript'] .= '$final_rendered .= \'' .vB_Template::fetch_template_raw('rcd_n_o_additional_notices') . '\';';
         vB_Template::preRegister('editor_clientscript', array('return_link'=>$vbulletin->scriptpath, 'additional_notices'=> $additional_notices));
     }
-    $vbulletin->np_notices_displayed = array_merge($tmp_np_notices_displayed, $vbulletin->np_notices_displayed);
+    if (is_array($tmp_np_notices_displayed))
+    {
+        $vbulletin->np_notices_displayed = array_merge($tmp_np_notices_displayed, $vbulletin->np_notices_displayed);
+    }
 }]]></phpcode>
 		</plugin>
 	</plugins>
